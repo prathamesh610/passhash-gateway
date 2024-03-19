@@ -48,6 +48,7 @@ func (s *GinServer) Readiness(ctx *gin.Context) {
 	ready := s.DB.Ready()
 	if ready {
 		ctx.JSON(http.StatusOK, models.Health{Status: "OK"})
+		return 
 	}
 
 	ctx.JSON(http.StatusInternalServerError, models.Health{Status: "Failure"})

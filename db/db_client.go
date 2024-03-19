@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -14,7 +15,7 @@ import (
 type DatabaseClient interface {
 	Ready() bool
 	FindByEmail(ctx context.Context, emailAddress string) (*models.User, error)
-	AddUser(ctx context.Context, user *models.User) (*models.User, error) 
+	AddUser(ctx context.Context, user *models.User) (*models.User, error)
 }
 
 type Client struct {
@@ -22,13 +23,17 @@ type Client struct {
 }
 
 func NewDataBaseClient() (DatabaseClient, error) {
+	url := os.Getenv("PASSHASH_URL")
+	user := os.Getenv("PASSHASH_USER")
+	password := os.Getenv("PASSHASH_PASSWORD")
+	dbName := os.Getenv("PASSHASH_DB_NAME")
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s",
-	 "localhost", 
-	 "postgres",
-	 "postgres",
-	 "postgres",
-	 5432,
-	 "disable")
+		url,
+		user,
+		password,
+		dbName,
+		5432,
+		"disable")
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
@@ -55,11 +60,11 @@ func (c Client) Ready() bool {
 	var ready string
 	tx := c.DB.Raw("SELECT 1 as ready").Scan(&ready)
 
-	if tx.Error != nil{
+	if tx.Error != nil {
 		return false
 	}
 
-	if ready == "1"{
+	if ready == "1" {
 		return true
 	}
 
