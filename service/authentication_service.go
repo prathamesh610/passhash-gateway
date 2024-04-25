@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/mail"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -92,6 +94,39 @@ func SignIn(db db.DatabaseClient, ctx context.Context, authdetails *models.Authe
 	return &token, nil
 }
 
+func Authenticate(bearerToken string) (string, error) {
+	secretKey := os.Getenv("JWT_SECRET")
+	mySigningKey := []byte(secretKey)
+	if !strings.HasPrefix(bearerToken, "Bearer ") {
+		return "", &dberrors.CustomError{
+			Err: constants.NO_AUTH_TOKEN,
+		}
+	}
+
+	jwtToken := strings.TrimPrefix(bearerToken, "Bearer ")
+	token, err := jwt.Parse(jwtToken, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Error while parsing")
+		}
+		return mySigningKey, nil
+	})
+
+	if err != nil {
+		return "", &dberrors.CustomError{
+			Err: constants.INVALID_AUTH_TOKEN_OR_EXPIRED,
+		}
+	}
+	var role string
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		if claims["role"] == "Admin" {
+			role = "Admin"
+		} else if claims["role"] == "User" {
+			role = "User"
+		}
+	}
+	return role, nil
+}
+
 func checkPasswordHash(password string, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
@@ -108,7 +143,7 @@ func generatehashPassword(password string) (string, error) {
 }
 
 func generateJWT(email string, role string) (string, error) {
-	secretKey := os.Getenv("jwt-secret")
+	secretKey := os.Getenv("JWT_SECRET")
 	mySigningKey := []byte(secretKey)
 
 	token := jwt.New(jwt.SigningMethodHS256)

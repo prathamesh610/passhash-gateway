@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"prathameshj.dev/passhash-gateway/constants"
 	"prathameshj.dev/passhash-gateway/models"
 	"prathameshj.dev/passhash-gateway/service"
 )
@@ -57,3 +58,22 @@ func (s *GinServer) SignIn(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, *token)
 }
 
+func (s *GinServer) Authenticate(ctx *gin.Context) {
+	ctx.Header("Content-Type", "application/json")
+
+	token := ctx.Request.Header.Get("Authorization")
+	// fmt.Printf("Token is %s", token)
+	if token == "" {
+		ctx.JSON(http.StatusUnauthorized, constants.NO_AUTH_TOKEN)
+		return
+	}
+
+	role, err := service.Authenticate(token)
+
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	ctx.JSON(http.StatusOK, role)
+}

@@ -15,6 +15,8 @@ type Server interface {
 
 	SignUp(ctx *gin.Context)
 	SignIn(ctx *gin.Context)
+
+	Authenticate(ctx *gin.Context)
 }
 
 type GinServer struct {
@@ -41,6 +43,8 @@ func (s *GinServer) registerRoutes() {
 
 	s.gin.POST("/signup", s.SignUp)
 	s.gin.POST("/signin", s.SignIn)
+
+	s.gin.GET("/authenticate", s.Authenticate)
 
 }
 
